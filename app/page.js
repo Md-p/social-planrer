@@ -210,6 +210,27 @@ export default function BlogbioDashboard() {
       }
     }
 
+    // Telegram Web App SDK initialization
+    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+      try {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#043873');
+        if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#f8fafc');
+        if (typeof tg.enableClosingConfirmation === 'function') tg.enableClosingConfirmation();
+        if (tg.initDataUnsafe?.user?.id) {
+          const detectedId = String(tg.initDataUnsafe.user.id);
+          setTelegramForm((prev) => ({
+            ...prev,
+            telegramChatId: prev.telegramChatId || detectedId,
+          }));
+        }
+      } catch (e) {
+        console.warn('Telegram WebApp init warning:', e);
+      }
+    }
+
     // Default scheduled time
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
