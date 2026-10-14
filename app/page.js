@@ -49,6 +49,13 @@ export default function BlogbioDashboard() {
   const [showNewDropdown, setShowNewDropdown] = useState(false);
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
+  const [telegramForm, setTelegramForm] = useState({
+    telegramBotToken: '',
+    telegramChatId: '',
+  });
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [isSavingTelegram, setIsSavingTelegram] = useState(false);
 
   // App Data
   const [posts, setPosts] = useState([]);
@@ -171,6 +178,10 @@ export default function BlogbioDashboard() {
         setSettingsForm({
           pageId: settingsData.settings.pageId || '',
           pageAccessToken: settingsData.settings.pageAccessToken || '',
+        });
+        setTelegramForm({
+          telegramBotToken: settingsData.settings.telegramBotToken || '',
+          telegramChatId: settingsData.settings.telegramChatId || '',
         });
       }
       fetchInsights();
@@ -320,6 +331,54 @@ export default function BlogbioDashboard() {
       }
     } catch (err) {
       showToast(err.message, 'error');
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    if (!telegramForm.telegramBotToken || !telegramForm.telegramChatId) {
+      showToast('দয়া করে Bot Token এবং Chat ID উভয়ই লিখুন!', 'error');
+      return;
+    }
+    setIsTestingTelegram(true);
+    try {
+      const res = await fetch('/api/settings/test-telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(telegramForm),
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast('🎉 আপনার টেলিগ্রামে টেস্ট মেসেজ সফলভাবে পাঠানো হয়েছে!', 'success');
+      } else {
+        showToast(`❌ ${d.error}`, 'error');
+      }
+    } catch (err) {
+      showToast(`❌ Error: ${err.message}`, 'error');
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
+
+  const handleSaveTelegram = async () => {
+    setIsSavingTelegram(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(telegramForm),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setSettings(d.settings);
+        showToast('✅ Telegram Bot সেটিংস সফলভাবে সেভ হয়েছে!', 'success');
+        setShowTelegramModal(false);
+      } else {
+        showToast(`Error: ${d.error}`, 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsSavingTelegram(false);
     }
   };
 
@@ -555,221 +614,73 @@ export default function BlogbioDashboard() {
         {/* DASHBOARD CONTENT BODY */}
         {activeNav !== 'Analytics' && (
           <div className="p-4 sm:p-8 pb-24 md:pb-8 space-y-5 sm:space-y-7 max-w-[1550px] w-full mx-auto">
-          {/* ROW 1: WELCOME BANNER + MINI CALENDAR */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
-            {/* Welcome Banner (Left 8 cols) */}
-            <div className="lg:col-span-8 bg-white rounded-3xl p-7 border border-slate-200/80 shadow-xs flex flex-col justify-between relative overflow-hidden">
-              <div className="max-w-md z-10">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Welcome To
-                </p>
-                <h2 className="text-2xl sm:text-3xl font-black text-[#043873] tracking-tight leading-snug">
-                  Your Task Management Area
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-2.5 leading-relaxed font-normal">
-                  Track scheduled posts, team performance, and KPI progress in one place. Stay on top of
-                  pages, publishing flow, and Adsconex activity every day.
-                </p>
+          {/* TOP COMMAND HERO: ACTIVE FACEBOOK PAGE & 24/7 CLOUD AUTOMATION */}
+          <div className="bg-gradient-to-r from-[#043873] via-[#09488f] to-[#00A8E8] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+            {/* Background Glow Accents */}
+            <div className="absolute -right-12 -top-12 w-64 h-64 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute right-32 -bottom-20 w-48 h-48 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
 
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => setShowNewPostModal(true)}
-                    className="px-6 py-2.5 rounded-xl bg-[#00A8E8] hover:bg-[#0092c9] text-white font-bold text-xs shadow-sm transition"
-                  >
-                    + Create Content
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Analytics');
-                      fetchInsights(selectedInsightsPageId || settings.pageId);
-                    }}
-                    className="px-5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-[#043873] border border-slate-200 font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
-                  >
-                    <BarChart2 className="w-3.5 h-3.5 text-blue-600" />
-                    <span>View Page Insights (Reach, Country, Earning)</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Graphic Illustration on the Right */}
-              <div className="hidden sm:flex absolute right-6 bottom-4 top-4 items-center justify-center pointer-events-none">
-                <div className="w-56 h-48 bg-gradient-to-tr from-cyan-50 to-blue-50 rounded-2xl border border-cyan-100/80 p-4 flex flex-col justify-between shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="w-8 h-8 rounded-lg bg-[#00A8E8]/10 text-[#00A8E8] flex items-center justify-center font-bold text-sm">
-                      📅
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      Active Flow
-                    </span>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="w-3/4 h-2 rounded bg-slate-200 animate-pulse" />
-                    <div className="w-1/2 h-2 rounded bg-slate-100" />
-                    <div className="w-5/6 h-2 rounded bg-blue-100" />
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-[#043873]">
-                    <span>Social Workflow</span>
-                    <span>100%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mini Calendar Card (Right 4 cols) */}
-            <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-extrabold text-[#043873]">October 2026</span>
-                <div className="flex items-center gap-1">
-                  <button className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-y-2 text-center text-xs">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                  <span key={i} className="text-[11px] font-bold text-slate-400">
-                    {d}
-                  </span>
-                ))}
-                {/* Dummy previous days */}
-                <span className="text-slate-300">27</span>
-                <span className="text-slate-300">28</span>
-                <span className="text-slate-300">29</span>
-                <span className="text-slate-300">30</span>
-                <span className="font-semibold text-slate-700">1</span>
-                <span className="font-semibold text-slate-700">2</span>
-                <span className="font-semibold text-slate-700">3</span>
-                {[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31].map(
-                  (day) => (
-                    <button
-                      key={day}
-                      onClick={() => setSelectedCalendarDay(day)}
-                      className={`h-7 w-7 mx-auto rounded-full text-xs flex items-center justify-center transition font-semibold ${
-                        selectedCalendarDay === day
-                          ? 'bg-[#00A8E8] text-white font-bold shadow-xs'
-                          : 'text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ROW 2: 4 METRIC STATS CARDS (Page, Post, Adsconex, Team) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Card 1: Page */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-slate-300 transition">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1877F2] flex items-center justify-center font-bold text-xl">
-                <Facebook className="w-6 h-6 fill-current" />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-[#043873] tracking-tight">
-                  {settings.pages && settings.pages.length > 0
-                    ? settings.pages.length < 10
-                      ? `0${settings.pages.length}`
-                      : settings.pages.length
-                    : settings.isConnected
-                    ? '01'
-                    : '00'}
-                </p>
-                <p className="text-xs font-bold text-slate-400">Pages Connected</p>
-              </div>
-            </div>
-
-            {/* Card 2: Post */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-slate-300 transition">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xl">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-[#043873] tracking-tight">
-                  {posts.length < 10 ? `0${posts.length}` : posts.length}
-                </p>
-                <p className="text-xs font-bold text-slate-400">Post</p>
-              </div>
-            </div>
-
-            {/* Card 3: Adsconex */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-slate-300 transition">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center font-bold text-xl">
-                <Layers className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-[#043873] tracking-tight">00</p>
-                <p className="text-xs font-bold text-slate-400">Adsconex</p>
-              </div>
-            </div>
-
-            {/* Card 4: Team */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-slate-300 transition">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xl">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-[#043873] tracking-tight">01</p>
-                <p className="text-xs font-bold text-slate-400">Team</p>
-              </div>
-            </div>
-          </div>
-
-          {/* CONNECTED FACEBOOK PAGE BANNER (WITH MULTI-PAGE SELECTOR) */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4 w-full sm:w-auto">
-              {settings.isConnected ? (
-                settings.pageAvatar ? (
-                  <img
-                    src={settings.pageAvatar}
-                    alt="Page Avatar"
-                    className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-xs flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-[#1877F2] text-white flex items-center justify-center font-bold text-2xl shadow-xs flex-shrink-0">
-                    {settings.pageName ? settings.pageName.charAt(0) : 'F'}
-                  </div>
-                )
-              ) : (
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0">
-                  <Facebook className="w-7 h-7" />
-                </div>
-              )}
-
-              <div>
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              {/* Left Column: Active Page Branding & Status */}
+              <div className="space-y-4 max-w-xl">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-base font-black text-[#043873]">
-                    {settings.isConnected ? settings.pageName : 'Facebook Page Disconnected'}
-                  </h4>
-                  {settings.isConnected ? (
-                    <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      Active & Ready
-                    </span>
+                  <span className="px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-[11px] font-bold text-cyan-200 border border-white/20 flex items-center gap-1.5 shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    24/7 Cloud Worker Active
+                  </span>
+
+                  {settings.telegramBotToken ? (
+                    <button
+                      onClick={() => setShowTelegramModal(true)}
+                      className="px-3 py-1 rounded-full bg-emerald-500/25 hover:bg-emerald-500/35 text-[11px] font-bold text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <MessageSquare className="w-3 h-3 text-emerald-300" />
+                      <span>Telegram Alerts Active</span>
+                    </button>
                   ) : (
-                    <span className="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                      Not Connected
-                    </span>
+                    <button
+                      onClick={() => setShowTelegramModal(true)}
+                      className="px-3 py-1 rounded-full bg-amber-400/25 hover:bg-amber-400/35 text-[11px] font-bold text-amber-200 border border-amber-300/30 flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <MessageSquare className="w-3 h-3 text-amber-300" />
+                      <span>⚡ Set Up Telegram Bot</span>
+                    </button>
                   )}
                 </div>
 
-                <p className="text-xs text-slate-400 mt-1">
-                  {settings.isConnected
-                    ? `Page ID: ${settings.pageId} · Total Followers: ${
-                        settings.followersCount ? settings.followersCount.toLocaleString() : '0'
-                      }`
-                    : 'আপনার ফেসবুক পেজ কানেক্ট করতে ডানপাশের বাটনে ক্লিক করুন।'}
-                </p>
+                <div className="flex items-center gap-4">
+                  {settings.pageAvatar ? (
+                    <img
+                      src={settings.pageAvatar}
+                      alt="Page Avatar"
+                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-white/40 shadow-lg flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center font-black text-2xl text-white shadow-lg flex-shrink-0">
+                      {settings.pageName ? settings.pageName.charAt(0) : 'P'}
+                    </div>
+                  )}
 
-                {/* Multi-Page Switcher Dropdown */}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-xs">
+                        {settings.pageName || 'Facebook Page Disconnected'}
+                      </h2>
+                      <Award className="w-5 h-5 text-cyan-300 flex-shrink-0" />
+                    </div>
+                    <p className="text-xs text-cyan-100 font-medium mt-1">
+                      {settings.followersCount
+                        ? `${settings.followersCount.toLocaleString()} Followers`
+                        : '0 Followers'}{' '}
+                      · Page ID: {settings.pageId || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Page Switcher Pill */}
                 {settings.pages && settings.pages.length > 1 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[11px] font-bold text-slate-500">Switch Page:</span>
+                  <div className="pt-1 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-cyan-100/90">Active Posting Page:</span>
                     <select
                       value={settings.pageId}
                       onChange={async (e) => {
@@ -783,35 +694,127 @@ export default function BlogbioDashboard() {
                           const d = await res.json();
                           if (d.success) {
                             setSettings(d.settings);
-                            showToast(`Switched to page: ${d.settings.pageName}`, 'success');
+                            showToast(`Switched active page to: ${d.settings.pageName}`, 'success');
                           }
                         } catch (err) {
                           showToast(err.message, 'error');
                         }
                       }}
-                      className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
+                      className="bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold text-xs rounded-xl px-3 py-1.5 outline-none cursor-pointer backdrop-blur transition shadow-2xs"
                     >
                       {settings.pages.map((p) => (
-                        <option key={p.pageId} value={p.pageId}>
-                          {p.pageName} (ID: {p.pageId})
+                        <option key={p.pageId} value={p.pageId} className="text-slate-900 bg-white">
+                          📄 {p.pageName} ({p.followersCount ? p.followersCount.toLocaleString() : 0} followers)
                         </option>
                       ))}
                     </select>
                   </div>
                 )}
               </div>
+
+              {/* Right Column: 1-Tap Quick Action Buttons */}
+              <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <button
+                  onClick={() => {
+                    setPostType('REEL');
+                    setShowNewPostModal(true);
+                  }}
+                  className="px-5 py-3 rounded-2xl bg-white text-[#043873] hover:bg-cyan-50 font-black text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                >
+                  <Film className="w-4 h-4 text-rose-500" />
+                  <span>+ Create Reel</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setPostType('FEED');
+                    setShowNewPostModal(true);
+                  }}
+                  className="px-5 py-3 rounded-2xl bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 backdrop-blur active:scale-95 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-cyan-200" />
+                  <span>+ Feed Post</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveNav('Analytics');
+                    fetchInsights(selectedInsightsPageId || settings.pageId);
+                  }}
+                  className="px-4 py-3 rounded-2xl bg-white/15 hover:bg-white/25 text-white border border-white/25 font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 backdrop-blur cursor-pointer"
+                >
+                  <BarChart2 className="w-4 h-4 text-cyan-300" />
+                  <span>Analytics</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* PROFESSIONAL 4 METRIC STATS CARDS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Card 1: Active Target Page */}
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-blue-300 transition">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1877F2] flex items-center justify-center font-bold text-xl flex-shrink-0">
+                <Facebook className="w-6 h-6 fill-current" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-[#043873] truncate">
+                  {settings.pageName || 'Facebook Page'}
+                </p>
+                <p className="text-xs font-bold text-slate-400">
+                  {settings.followersCount ? `${settings.followersCount.toLocaleString()} Followers` : 'Active Page'}
+                </p>
+              </div>
             </div>
 
-            <button
-              onClick={() => setShowConnectModal(true)}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs transition flex-shrink-0 ${
-                settings.isConnected
-                  ? 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-                  : 'bg-[#1877F2] hover:bg-blue-700 text-white shadow-sm'
-              }`}
+            {/* Card 2: Scheduled Posts Queue */}
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-amber-300 transition">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xl flex-shrink-0">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-[#043873] tracking-tight">
+                  {scheduledCount < 10 ? `0${scheduledCount}` : scheduledCount}
+                </p>
+                <p className="text-xs font-bold text-slate-400">Scheduled in Queue</p>
+              </div>
+            </div>
+
+            {/* Card 3: Total Published Posts */}
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-emerald-300 transition">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl flex-shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-[#043873] tracking-tight">
+                  {publishedCount < 10 ? `0${publishedCount}` : publishedCount}
+                </p>
+                <p className="text-xs font-bold text-slate-400">Published Live</p>
+              </div>
+            </div>
+
+            {/* Card 4: Telegram Alert Bot */}
+            <div
+              onClick={() => setShowTelegramModal(true)}
+              className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4 hover:border-cyan-400 cursor-pointer transition group"
             >
-              {settings.isConnected ? 'Manage / Sync All Pages' : '+ Connect Facebook Page'}
-            </button>
+              <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-[#0088cc] flex items-center justify-center font-bold text-xl flex-shrink-0 group-hover:scale-105 transition">
+                <MessageSquare className="w-6 h-6 text-[#0088cc]" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#043873] flex items-center gap-1.5">
+                  <span>Telegram Alert</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      settings.telegramBotToken ? 'bg-emerald-500' : 'bg-amber-400'
+                    }`}
+                  />
+                </p>
+                <p className="text-[11px] font-bold text-cyan-600 group-hover:underline">
+                  {settings.telegramBotToken ? 'Active & Alerting ↗' : 'Configure Bot ↗'}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* ROW 3: POST OVERVIEW CHART + TEAM KPI STATUS */}
@@ -2330,6 +2333,90 @@ export default function BlogbioDashboard() {
                 {isSavingSettings ? 'Saving...' : 'Save Settings'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. MODAL: TELEGRAM BOT CONFIGURATION */}
+      {showTelegramModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-slate-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+            <button
+              onClick={() => setShowTelegramModal(false)}
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-[#0088cc] flex items-center justify-center shadow-xs flex-shrink-0">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-[#043873]">Telegram Alert Bot</h3>
+                <p className="text-xs text-slate-400">পোস্ট বা রিল পাবলিশ হলে ফোনে অটো মেসেজ পাবেন</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mt-5">
+              <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-100 text-xs text-slate-600 leading-relaxed">
+                <p className="font-bold text-blue-900 mb-1">💡 কীভাবে সেটআপ করবেন?</p>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600">
+                  <li>টেলিগ্রামে <b>@BotFather</b>-এ <code className="bg-white px-1 py-0.5 rounded">/newbot</code> লিখে বট বানিয়ে <b>API Token</b> কপি করুন।</li>
+                  <li>আপনার চ্যাট আইডি জানতে <b>@userinfobot</b>-এ মেসেজ দিয়ে <b>User ID</b> কপি করুন।</li>
+                </ol>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Telegram Bot Token
+                </label>
+                <input
+                  type="text"
+                  value={telegramForm.telegramBotToken}
+                  onChange={(e) =>
+                    setTelegramForm({ ...telegramForm, telegramBotToken: e.target.value })
+                  }
+                  placeholder="e.g. 7123456789:AAHxxxxx..."
+                  className="w-full p-3 rounded-xl border border-slate-200 text-xs font-mono outline-none focus:border-cyan-500 bg-slate-50 focus:bg-white transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Telegram Chat ID / User ID
+                </label>
+                <input
+                  type="text"
+                  value={telegramForm.telegramChatId}
+                  onChange={(e) =>
+                    setTelegramForm({ ...telegramForm, telegramChatId: e.target.value })
+                  }
+                  placeholder="e.g. 652391028"
+                  className="w-full p-3 rounded-xl border border-slate-200 text-xs font-mono outline-none focus:border-cyan-500 bg-slate-50 focus:bg-white transition"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleTestTelegram}
+                  disabled={isTestingTelegram}
+                  className="flex-1 py-2.5 rounded-xl border border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 font-bold text-xs transition cursor-pointer"
+                >
+                  {isTestingTelegram ? 'Testing...' : '🔔 Send Test Message'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveTelegram}
+                  disabled={isSavingTelegram}
+                  className="flex-1 py-2.5 rounded-xl bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold text-xs shadow-sm transition cursor-pointer"
+                >
+                  {isSavingTelegram ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
