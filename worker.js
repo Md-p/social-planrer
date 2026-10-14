@@ -16,10 +16,19 @@ function sendTelegramAlert(message) {
 
 function checkSchedule() {
   const port = process.env.PORT || 3000;
-  const req = http.get(`http://localhost:${port}/api/scheduler`, (res) => {
-    let raw = '';
-    res.on('data', (chunk) => (raw += chunk));
-    res.on('end', () => {
+  const url = `http://localhost:${port}/api/scheduler?t=${Date.now()}`;
+  const req = http.get(
+    url,
+    {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
+    },
+    (res) => {
+      let raw = '';
+      res.on('data', (chunk) => (raw += chunk));
+      res.on('end', () => {
       try {
         const json = JSON.parse(raw);
         if (json.publishedCount > 0) {

@@ -9,7 +9,10 @@ import {
   postMultipleCommentsToFacebook,
 } from '@/lib/fb';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export async function GET(req) {
   try {
     const db = getDb();
     if (!db.settings.isConnected) {
@@ -151,4 +154,8 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
+}
+
+export async function POST(req) {
+  return GET(req);
 }

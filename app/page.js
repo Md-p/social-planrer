@@ -56,6 +56,7 @@ export default function BlogbioDashboard() {
   });
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [isSavingTelegram, setIsSavingTelegram] = useState(false);
+  const [isRunningScheduler, setIsRunningScheduler] = useState(false);
 
   // App Data
   const [posts, setPosts] = useState([]);
@@ -220,7 +221,7 @@ export default function BlogbioDashboard() {
     // Auto-Scheduler interval
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/scheduler');
+        const res = await fetch(`/api/scheduler?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
         if (data.publishedCount > 0) {
           showToast(`⚡ ${data.publishedCount} scheduled post(s) automatically published to Facebook!`, 'success');
@@ -229,10 +230,34 @@ export default function BlogbioDashboard() {
       } catch (e) {
         // silent check
       }
-    }, 35000);
+    }, 25000);
 
     return () => clearInterval(interval);
   }, []);
+
+  const triggerSchedulerManually = async () => {
+    setIsRunningScheduler(true);
+    try {
+      const res = await fetch(`/api/scheduler?t=${Date.now()}`, {
+        method: 'POST',
+        cache: 'no-store',
+      });
+      const data = await res.json();
+      if (data.publishedCount > 0) {
+        showToast(`🎉 ${data.publishedCount} টি পোস্ট সফলভাবে ফেসবুকে পাবলিশ হয়েছে!`, 'success');
+        fetchData();
+      } else if (data.failedCount > 0) {
+        showToast(`⚠️ সমস্যা হয়েছে: ${data.results?.[0]?.error || 'Publish Error'}`, 'error');
+        fetchData();
+      } else {
+        showToast('ℹ️ শিডিউলার চেক সম্পন্ন! বর্তমানে পাবলিশের সময় হওয়া কোনো শিডিউল পোস্ট নেই।', 'success');
+      }
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+    } finally {
+      setIsRunningScheduler(false);
+    }
+  };
 
   const handleCreatePost = async (publishNow = false) => {
     if (postType === 'FEED' && !composerContent.trim() && !composerMediaUrl.trim()) {
@@ -734,6 +759,16 @@ export default function BlogbioDashboard() {
                 >
                   <FileText className="w-4 h-4 text-cyan-200" />
                   <span>+ Feed Post</span>
+                </button>
+
+                <button
+                  onClick={triggerSchedulerManually}
+                  disabled={isRunningScheduler}
+                  className="px-4 py-3 rounded-2xl bg-cyan-400/20 hover:bg-cyan-400/30 text-white border border-cyan-300/40 font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 backdrop-blur cursor-pointer active:scale-95"
+                  title="Force check and publish all pending scheduled posts right now"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-cyan-300 ${isRunningScheduler ? 'animate-spin' : ''}`} />
+                  <span>{isRunningScheduler ? 'Checking...' : '⚡ Check & Post Now'}</span>
                 </button>
 
                 <button
