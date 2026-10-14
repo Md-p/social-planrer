@@ -116,6 +116,14 @@ export async function POST(req) {
             caption: content,
           });
           fbPostId = res.postId;
+
+          if (commentsList.length > 0 && fbPostId) {
+            postedComments = await postMultipleCommentsToFacebook({
+              postId: fbPostId,
+              comments: commentsList,
+              pageAccessToken,
+            });
+          }
         } else {
           // Standard FEED
           const res = await publishToFacebook({

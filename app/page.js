@@ -254,7 +254,7 @@ export default function BlogbioDashboard() {
           mediaUrl: composerMediaUrl,
           videoUrl: composerVideoUrl,
           postType,
-          scheduledAt: isScheduled && !publishNow ? scheduledDateTime : null,
+          scheduledAt: isScheduled && !publishNow && scheduledDateTime ? new Date(scheduledDateTime).toISOString() : null,
           publishNow,
           platforms: ['facebook'],
           autoComments: hasAutoComment ? autoCommentsList.filter((c) => c.trim() !== '') : [],
@@ -1003,7 +1003,16 @@ export default function BlogbioDashboard() {
                       )}
                       <div>
                         <p className="text-sm font-bold text-slate-800 line-clamp-1">{post.content || 'Photo Post'}</p>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                        <div className="flex items-center flex-wrap gap-2 mt-1 text-[11px] text-slate-400">
+                          {/* Target Page Badge */}
+                          <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+                            <span>📄</span>
+                            <span>
+                              {settings.pages?.find((p) => p.pageId === post.targetPageId)?.pageName ||
+                                (post.targetPageId === settings.pageId ? settings.pageName : 'Facebook Page')}
+                            </span>
+                          </span>
+
                           <span
                             className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
                               post.status === 'PUBLISHED'
@@ -1029,7 +1038,7 @@ export default function BlogbioDashboard() {
                           <span>·</span>
                           <span>
                             {post.scheduledAt
-                              ? `Scheduled for: ${new Date(post.scheduledAt).toLocaleString()}`
+                              ? `Scheduled: ${new Date(post.scheduledAt).toLocaleString()}`
                               : `Created: ${new Date(post.createdAt).toLocaleDateString()}`}
                           </span>
                         </div>
@@ -1037,6 +1046,16 @@ export default function BlogbioDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {post.fbPostId && post.status === 'PUBLISHED' && post.fbPostId !== 'sample-post-id' && (
+                        <a
+                          href={`https://facebook.com/${post.fbPostId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1877F2] font-bold text-[11px] flex items-center gap-1 transition"
+                        >
+                          <span>View on FB ↗</span>
+                        </a>
+                      )}
                       <button
                         onClick={() => handleDeletePost(post.id)}
                         className="p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-50 transition"
@@ -1694,64 +1713,6 @@ export default function BlogbioDashboard() {
                         </button>
                       </div>
                     </div>
-
-                    {/* Auto Comment / Story Parts Option */}
-                    <div className="pt-2 border-t border-slate-100">
-                      <label className="flex items-center gap-2 cursor-pointer mb-2">
-                        <input
-                          type="checkbox"
-                          checked={hasAutoComment}
-                          onChange={(e) => setHasAutoComment(e.target.checked)}
-                          className="w-4 h-4 text-emerald-600 rounded"
-                        />
-                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                          Auto Comments / Story Parts (পোস্টের কমেন্টে গল্পের পরবর্তী পর্বসমূহ)
-                        </span>
-                      </label>
-
-                      {hasAutoComment && (
-                        <div className="space-y-3 p-3 bg-emerald-50/20 rounded-2xl border border-emerald-100">
-                          {autoCommentsList.map((comm, idx) => (
-                            <div key={idx} className="space-y-1">
-                              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                                <span>{`Part ${idx + 2} (Comment ${idx + 1})`}</span>
-                                {autoCommentsList.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setAutoCommentsList(autoCommentsList.filter((_, i) => i !== idx))
-                                    }
-                                    className="text-rose-500 hover:text-rose-700 text-[10px]"
-                                  >
-                                    Remove Part
-                                  </button>
-                                )}
-                              </div>
-                              <textarea
-                                rows={2}
-                                value={comm}
-                                onChange={(e) => {
-                                  const nextList = [...autoCommentsList];
-                                  nextList[idx] = e.target.value;
-                                  setAutoCommentsList(nextList);
-                                }}
-                                placeholder={`গল্পের ${idx + 2} নং পর্ব বা কমেন্টের লেখা এখানে লিখুন...`}
-                                className="w-full p-2.5 rounded-xl border border-slate-200 text-xs outline-none focus:border-emerald-500 bg-white resize-none"
-                              />
-                            </div>
-                          ))}
-
-                          <button
-                            type="button"
-                            onClick={() => setAutoCommentsList([...autoCommentsList, ''])}
-                            className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 mt-1 cursor-pointer"
-                          >
-                            + Add Next Part (Comment {autoCommentsList.length + 1})
-                          </button>
-                        </div>
-                      )}
-                    </div>
                   </>
                 )}
 
@@ -1930,6 +1891,76 @@ export default function BlogbioDashboard() {
                   </>
                 )}
 
+                {/* Auto Comment / First Comment (For both Feed Posts and Reels) */}
+                {postType !== 'STORY' && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="flex items-center gap-2 cursor-pointer mb-2">
+                      <input
+                        type="checkbox"
+                        checked={hasAutoComment}
+                        onChange={(e) => setHasAutoComment(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                        {postType === 'REEL'
+                          ? 'Auto Comment on Reel (রিলস পোস্ট হওয়ার সাথে সাথে ১ম কমেন্ট / লিংক)'
+                          : 'Auto Comments / Story Parts (পোস্টের কমেন্টে গল্পের পরবর্তী পর্বসমূহ)'}
+                      </span>
+                    </label>
+
+                    {hasAutoComment && (
+                      <div className="space-y-3 p-3 bg-emerald-50/20 rounded-2xl border border-emerald-100">
+                        {autoCommentsList.map((comm, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                              <span>
+                                {postType === 'REEL'
+                                  ? `Reel Comment ${idx + 1}`
+                                  : `Part ${idx + 2} (Comment ${idx + 1})`}
+                              </span>
+                              {autoCommentsList.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAutoCommentsList(autoCommentsList.filter((_, i) => i !== idx))
+                                  }
+                                  className="text-rose-500 hover:text-rose-700 text-[10px]"
+                                >
+                                  Remove Comment
+                                </button>
+                              )}
+                            </div>
+                            <textarea
+                              rows={2}
+                              value={comm}
+                              onChange={(e) => {
+                                const nextList = [...autoCommentsList];
+                                nextList[idx] = e.target.value;
+                                setAutoCommentsList(nextList);
+                              }}
+                              placeholder={
+                                postType === 'REEL'
+                                  ? 'রিলসের কমেন্টে যে লিংক বা মেসেজ দিতে চান তা লিখুন...'
+                                  : `গল্পের ${idx + 2} নং পর্ব বা কমেন্টের লেখা এখানে লিখুন...`
+                              }
+                              className="w-full p-2.5 rounded-xl border border-slate-200 text-xs outline-none focus:border-emerald-500 bg-white resize-none"
+                            />
+                          </div>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={() => setAutoCommentsList([...autoCommentsList, ''])}
+                          className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 mt-1 cursor-pointer"
+                        >
+                          + Add Next Comment ({autoCommentsList.length + 1})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Scheduling Option (Common for all) */}
                 <div className="pt-2">
                   <label className="flex items-center gap-2 cursor-pointer mb-2">
@@ -1943,12 +1974,17 @@ export default function BlogbioDashboard() {
                   </label>
 
                   {isScheduled && (
-                    <input
-                      type="datetime-local"
-                      value={scheduledDateTime}
-                      onChange={(e) => setScheduledDateTime(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 text-xs"
-                    />
+                    <div className="space-y-1">
+                      <input
+                        type="datetime-local"
+                        value={scheduledDateTime}
+                        onChange={(e) => setScheduledDateTime(e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none transition"
+                      />
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        🕒 সময়টি আপনার ডিভাইসের বর্তমান সময় (Bangladesh Time GMT+6) অনুযায়ী কাজ করবে।
+                      </p>
+                    </div>
                   )}
                 </div>
 

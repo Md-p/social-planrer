@@ -83,6 +83,15 @@ export async function POST(req, { params }) {
           caption: post.content,
         });
         post.fbPostId = res.postId;
+
+        const commentsToPost = post.autoComments || (post.autoComment ? [post.autoComment] : []);
+        if (commentsToPost.length > 0 && res.postId) {
+          post.postedComments = await postMultipleCommentsToFacebook({
+            postId: res.postId,
+            comments: commentsToPost,
+            pageAccessToken,
+          });
+        }
       } else {
         const result = await publishToFacebook({
           pageId,

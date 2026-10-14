@@ -15,9 +15,19 @@ export async function GET() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { pageId, pageAccessToken, appId, appSecret } = body;
+    const { pageId, pageAccessToken, appId, appSecret, telegramBotToken, telegramChatId } = body;
 
     const db = getDb();
+
+    // If saving Telegram Bot settings
+    if (telegramBotToken !== undefined || telegramChatId !== undefined) {
+      db.settings = {
+        ...db.settings,
+        telegramBotToken: telegramBotToken !== undefined ? telegramBotToken.trim() : (db.settings.telegramBotToken || ''),
+        telegramChatId: telegramChatId !== undefined ? telegramChatId.trim() : (db.settings.telegramChatId || ''),
+      };
+      saveDb(db);
+    }
 
     // If saving App ID & Secret for Direct OAuth Login
     if (appId || appSecret) {

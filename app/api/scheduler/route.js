@@ -55,6 +55,15 @@ export async function GET() {
                 caption: post.content,
               });
               post.fbPostId = res.postId;
+
+              const commentsToPost = post.autoComments || (post.autoComment ? [post.autoComment] : []);
+              if (commentsToPost.length > 0 && res.postId) {
+                post.postedComments = await postMultipleCommentsToFacebook({
+                  postId: res.postId,
+                  comments: commentsToPost,
+                  pageAccessToken,
+                });
+              }
             } else {
               const pubResult = await publishToFacebook({
                 pageId,
@@ -91,6 +100,30 @@ export async function GET() {
             } catch (cleanupErr) {
               console.warn('[Scheduler] Cleanup warning:', cleanupErr.message);
             }
+
+            // Send Telegram Alert
+            try {
+              const tgToken = db.settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+              const tgChatId = db.settings.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+              if (tgToken && tgChatId) {
+                const targetPageName =
+                  db.settings.pages?.find((p) => p.pageId === pageId)?.pageName || db.settings.pageName;
+                const postUrl = post.fbPostId ? `https://facebook.com/${post.fbPostId}` : '';
+                const tgMsg =
+                  `🚀 <b>Facebook Auto-Publisher Alert</b>\n\n` +
+                  `✅ <b>${post.postType || 'FEED'}</b> সফলভাবে পাবলিশ হয়েছে!\n` +
+                  `📄 পেইজ: <b>${targetPageName}</b>\n` +
+                  (post.content ? `📝 ক্যাপশন: <i>${post.content.slice(0, 90)}...</i>\n` : '') +
+                  (postUrl ? `🔗 <a href="${postUrl}">পোস্টটি ফেসবুকে দেখুন</a>\n` : '') +
+                  `⏰ সময়: ${new Date().toLocaleString()}`;
+
+                fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: tgChatId, text: tgMsg, parse_mode: 'HTML' }),
+                }).catch(() => {});
+              }
+            } catch (tgErr) {}
 
             publishedCount++;
             results.push({ id: post.id, status: 'PUBLISHED', type: post.postType || 'FEED' });
