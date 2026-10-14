@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { getDb, saveDb } from '@/lib/db';
 import {
   publishToFacebook,
@@ -135,6 +137,20 @@ export async function POST(req) {
 
         postStatus = 'PUBLISHED';
         publishedAt = now;
+
+        // Auto-clean uploaded video/media file from server disk to save space
+        try {
+          const fileToDelete = videoUrl || mediaUrl;
+          if (fileToDelete && typeof fileToDelete === 'string' && fileToDelete.startsWith('/uploads/')) {
+            const localFilePath = path.join(process.cwd(), 'public', fileToDelete);
+            if (fs.existsSync(localFilePath)) {
+              fs.unlinkSync(localFilePath);
+              console.log(`[Posts] 🧹 Auto-deleted media file after instant publish: ${fileToDelete}`);
+            }
+          }
+        } catch (cleanupErr) {
+          console.warn('[Posts] Cleanup warning:', cleanupErr.message);
+        }
       } catch (err) {
         postStatus = 'FAILED';
         errorMsg = err.message;

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { getDb, saveDb } from '@/lib/db';
 import {
   publishToFacebook,
@@ -75,6 +77,21 @@ export async function GET() {
             post.status = 'PUBLISHED';
             post.publishedAt = now.toISOString();
             post.error = null;
+
+            // Auto-clean uploaded video/media file from server disk to save space
+            try {
+              const fileToDelete = post.videoUrl || post.mediaUrl;
+              if (fileToDelete && typeof fileToDelete === 'string' && fileToDelete.startsWith('/uploads/')) {
+                const localFilePath = path.join(process.cwd(), 'public', fileToDelete);
+                if (fs.existsSync(localFilePath)) {
+                  fs.unlinkSync(localFilePath);
+                  console.log(`[Scheduler] 🧹 Auto-deleted media file after successful post: ${fileToDelete}`);
+                }
+              }
+            } catch (cleanupErr) {
+              console.warn('[Scheduler] Cleanup warning:', cleanupErr.message);
+            }
+
             publishedCount++;
             results.push({ id: post.id, status: 'PUBLISHED', type: post.postType || 'FEED' });
           } catch (err) {

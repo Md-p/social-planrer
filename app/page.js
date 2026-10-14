@@ -347,8 +347,8 @@ export default function BlogbioDashboard() {
         </div>
       )}
 
-      {/* 1. SLIM LEFT SIDEBAR (Identical to Blogbio screenshot) */}
-      <aside className="w-[78px] bg-white border-r border-slate-200/80 flex flex-col items-center py-4 justify-between z-20 flex-shrink-0">
+      {/* 1. SLIM LEFT SIDEBAR (Desktop) */}
+      <aside className="hidden md:flex w-[78px] bg-white border-r border-slate-200/80 flex-col items-center py-4 justify-between z-20 flex-shrink-0">
         <div className="flex flex-col items-center w-full gap-7">
           {/* Cyan/Blue Blogbio Logo */}
           <div className="w-11 h-11 rounded-2xl bg-[#00A8E8] flex items-center justify-center text-white font-extrabold text-2xl shadow-sm tracking-tighter">
@@ -405,30 +405,78 @@ export default function BlogbioDashboard() {
         </div>
       </aside>
 
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 z-40 flex items-center justify-around px-2 shadow-lg">
+        {[
+          { id: 'Home', icon: Home, label: 'Home' },
+          { id: 'Analytics', icon: BarChart2, label: 'Insights' },
+          { id: 'Create', icon: Plus, label: 'Create', isSpecial: true },
+          { id: 'Plan', icon: CalendarIcon, label: 'Plan' },
+          { id: 'Settings', icon: SettingsIcon, label: 'Settings' },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeNav === item.id;
+          if (item.isSpecial) {
+            return (
+              <button
+                key={item.id}
+                onClick={() => setShowNewPostModal(true)}
+                className="w-12 h-12 -mt-5 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition"
+                title="Create Post"
+              >
+                <Plus className="w-6 h-6 stroke-[2.5]" />
+              </button>
+            );
+          }
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveNav(item.id);
+                if (item.id === 'Analytics') fetchInsights(selectedInsightsPageId || settings.pageId);
+                if (item.id === 'Settings') setShowConnectModal(true);
+              }}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+                isActive ? 'text-[#2563EB] font-bold' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.8]'}`} />
+              <span className="text-[10px] mt-0.5">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
       {/* 2. MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* TOP NAVBAR */}
-        <header className="h-20 bg-white/80 backdrop-blur border-b border-slate-200/70 px-8 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <h1 className="text-2xl font-black text-[#043873] tracking-tight">
-              {activeNav === 'Analytics' ? 'Page Insights & Analytics' : 'Dashboard'}
-            </h1>
-            <p className="text-xs text-slate-400 font-medium">
-              {activeNav === 'Analytics'
-                ? 'Facebook Page Reach, Followers, Audience Countries & Earnings'
-                : '14 October 2026'}
-            </p>
+        <header className="h-16 sm:h-20 bg-white/90 backdrop-blur border-b border-slate-200/70 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-2.5">
+            {/* Mobile Logo */}
+            <div className="md:hidden w-8 h-8 rounded-xl bg-[#00A8E8] flex items-center justify-center text-white font-extrabold text-base shadow-sm">
+              b
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-2xl font-black text-[#043873] tracking-tight">
+                {activeNav === 'Analytics' ? 'Insights' : 'Dashboard'}
+              </h1>
+              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">
+                {activeNav === 'Analytics'
+                  ? 'Facebook Page Reach & Earnings'
+                  : '14 October 2026'}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Language Switcher */}
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">
+            <button className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">
               <Globe className="w-3.5 h-3.5 text-slate-500" />
               <span>EN</span>
             </button>
 
             {/* Dark Mode Icon */}
-            <button className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
+            <button className="hidden sm:flex w-9 h-9 rounded-lg border border-slate-200 items-center justify-center text-slate-600 hover:bg-slate-50 transition">
               <Moon className="w-4 h-4" />
             </button>
 
@@ -436,9 +484,9 @@ export default function BlogbioDashboard() {
             <div className="relative">
               <button
                 onClick={() => setShowNewDropdown(!showNewDropdown)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm shadow-sm transition"
+                className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm shadow-sm transition"
               >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <Plus className="w-3.5 sm:w-4 h-3.5 sm:h-4 stroke-[2.5]" />
                 <span>New</span>
               </button>
 
@@ -480,33 +528,33 @@ export default function BlogbioDashboard() {
             </div>
 
             {/* Workspace Grid Switcher */}
-            <button className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
+            <button className="hidden sm:flex w-9 h-9 rounded-lg border border-slate-200 items-center justify-center text-slate-600 hover:bg-slate-50 transition">
               <Grid className="w-4 h-4" />
             </button>
 
             {/* Notification Bell */}
             <div className="relative">
-              <button className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
-                <Bell className="w-4 h-4" />
+              <button className="w-8 sm:w-9 h-8 sm:h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
+                <Bell className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
               </button>
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
                 1
               </span>
             </div>
 
             {/* User Profile Pill */}
-            <div className="flex items-center gap-2 pl-2">
-              <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+            <div className="flex items-center gap-2 pl-1 sm:pl-2">
+              <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
                 EI
               </div>
-              <span className="text-xs font-bold text-slate-700 hidden sm:inline">Account</span>
+              <span className="text-xs font-bold text-slate-700 hidden md:inline">Account</span>
             </div>
           </div>
         </header>
 
         {/* DASHBOARD CONTENT BODY */}
         {activeNav !== 'Analytics' && (
-          <div className="p-8 space-y-7 max-w-[1550px] w-full mx-auto">
+          <div className="p-4 sm:p-8 pb-24 md:pb-8 space-y-5 sm:space-y-7 max-w-[1550px] w-full mx-auto">
           {/* ROW 1: WELCOME BANNER + MINI CALENDAR */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
             {/* Welcome Banner (Left 8 cols) */}
@@ -1007,7 +1055,7 @@ export default function BlogbioDashboard() {
 
       {/* 2B. INSIGHTS & ANALYTICS VIEW */}
       {activeNav === 'Analytics' && (
-        <div className="p-8 space-y-7 max-w-[1550px] w-full mx-auto animate-in fade-in duration-200">
+        <div className="p-4 sm:p-8 pb-24 md:pb-8 space-y-5 sm:space-y-7 max-w-[1550px] w-full mx-auto animate-in fade-in duration-200">
           {/* Top Bar with Page Switcher & Refresh */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
             <div className="flex items-center gap-4">

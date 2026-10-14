@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { getDb, saveDb } from '@/lib/db';
 import {
   publishToFacebook,
@@ -11,13 +13,24 @@ export async function DELETE(req, { params }) {
   try {
     const { id } = params;
     const db = getDb();
-    const initialLen = db.posts.length;
-    db.posts = db.posts.filter((p) => p.id !== id);
+    const postToDelete = db.posts.find((p) => p.id === id);
 
-    if (db.posts.length === initialLen) {
+    if (!postToDelete) {
       return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
     }
 
+    // Clean up local media if exists
+    try {
+      const file = postToDelete.videoUrl || postToDelete.mediaUrl;
+      if (file && typeof file === 'string' && file.startsWith('/uploads/')) {
+        const localPath = path.join(process.cwd(), 'public', file);
+        if (fs.existsSync(localPath)) {
+          fs.unlinkSync(localPath);
+        }
+      }
+    } catch (e) {}
+
+    db.posts = db.posts.filter((p) => p.id !== id);
     saveDb(db);
     return NextResponse.json({ success: true, message: 'Post deleted successfully' });
   } catch (error) {
